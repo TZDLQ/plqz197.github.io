@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>主播歌单</title>
+  <!-- 使用谷歌字体，支持中文显示 -->
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap"
+  />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      /* 这里采用一个从左到右的淡紫到深紫渐变，可以根据需要调整颜色 */
+      background: linear-gradient(to right, #b2a6f9, #8d78f8);
+      margin: 0;
+      padding: 20px;
+      font-family: "Noto Sans SC", sans-serif;
+      color: #333; /* 全局文字颜色设为深色 */
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      /* 浅色半透明背景，保证在深色背景上文字可见 */
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(5px);
+    }
+
+    .nav-links {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .nav-links a {
+      margin: 0 10px;
+      padding: 10px 20px;
+      /* 使用浅色背景和深色文字 */
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 30px;
+      color: #333;
+      text-decoration: none;
+      font-weight: 700;
+      transition: background 0.3s, transform 0.3s;
+    }
+    .nav-links a:hover {
+      background: rgba(0, 0, 0, 0.15);
+      transform: translateY(-3px);
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+      /* 如果不需要文字阴影可去掉以下一行 */
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* 搜索栏输入框 */
+    .search-bar input {
+      width: 100%;
+      padding: 12px 20px;
+      margin-bottom: 20px;
+      border: none;
+      border-radius: 30px;
+      outline: none;
+      font-size: 16px;
+      background: #fff;
+      transition: box-shadow 0.3s;
+    }
+    .search-bar input:focus {
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 筛选栏 */
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .filter-bar select {
+      width: 48%;
+      padding: 10px;
+      border: none;
+      border-radius: 30px;
+      font-size: 16px;
+      outline: none;
+      background: #fff;
+      color: #333;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%204%205'%3E%3Cpath%20fill='%23333'%20d='M2%205L0%200h4z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+
+    /* 歌曲列表 */
+    .song {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #f0f0f0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .song:hover {
+      transform: scale(1.03);
+      background: #e2e2e2;
+    }
+    .song div {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+    .song p {
+      margin: 2px 0;
+    }
+    .song p strong {
+      margin-right: 5px;
+    }
+    .category {
+      font-style: italic;
+      font-size: 0.9em;
+      color: #555; /* 让分类稍微淡一点，但仍是深色可见 */
+    }
+
+    /* 分页区 */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .pagination button,
+    .pagination select {
+      padding: 10px 15px;
+      margin: 0 5px;
+      border: none;
+      border-radius: 5px;
+      background: #f0f0f0;
+      color: #333;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .pagination button:hover:not(:disabled) {
+      background: #e0e0e0;
+    }
+    .pagination button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    /* 歌曲数量统计 */
+    .song-count {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav-links">
+      <a href="https://space.bilibili.com/5067153" target="_blank">个人空间</a>
+      <a href="https://live.bilibili.com/197793" target="_blank">直播间</a>
+    </div>
+    <h1>我的歌单</h1>
+    <div class="search-bar">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="搜索歌曲或歌手..."
+        onkeyup="filterSongs()"
+      />
+    </div>
+    <div class="filter-bar">
+      <select id="categoryFilter" onchange="filterSongs()">
+        <option value="all">所有分类</option>
+        <option value="流行">流行</option>
+        <option value="古风">古风</option>
+        <option value="摇滚">摇滚</option>
+      </select>
+      <select id="letterFilter" onchange="filterSongs()">
+        <option value="all">所有首字母</option>
+        <script>
+          let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+          letters.forEach((letter) => {
+            document.write(`<option value="${letter}">${letter}</option>`);
+          });
+        </script>
+      </select>
+    </div>
+    <div id="songList"></div>
+    <div class="pagination">
+      <button id="prevPage" onclick="prevPage()" disabled>上一页</button>
+      <select id="pageSelect" onchange="goToPage()"></select>
+      <button id="nextPage" onclick="nextPage()">下一页</button>
+    </div>
+    <div id="songCount" class="song-count"></div>
+  </div>
+  <script>
+    let songs = [
+    { title: "夜空中最亮的星", artist: "逃跑计划", category: "流行", letter: "T" },
+            { title: "告白气球", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "晴天", artist: "周杰伦", category: "古风", letter: "Z" },
+            { title: "南山南", artist: "马頔", category: "民谣", letter: "M" },
+            { title: "稻香", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "凡人歌", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "山丘", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "梦醒时分", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "我终于失去了你", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "漂洋过海来看你", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "给自己的歌", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "希望", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "爱的代价", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "不舍", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "当爱已成往事", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "如果这都不算爱", artist: "李宗盛", category: "流行", letter: "L" },
+            { title: "她说", artist: "林俊杰", category: "流行", letter: "L" },
+            { title: "一生所爱", artist: "卢冠廷", category: "流行", letter: "L" },
+            { title: "匆匆那年", artist: "王菲", category: "流行", letter: "W" },
+            { title: "平凡之路", artist: "朴树", category: "流行", letter: "P" },
+            { title: "红玫瑰", artist: "陈奕迅", category: "流行", letter: "C" },
+            { title: "突然好想你", artist: "五月天", category: "流行", letter: "W" },
+            { title: "孤勇者", artist: "陈奕迅", category: "流行", letter: "C" },
+            { title: "年少有为", artist: "李荣浩", category: "流行", letter: "L" },
+            { title: "演员", artist: "薛之谦", category: "流行", letter: "X" },
+            { title: "爱很简单", artist: "陶喆", category: "流行", letter: "T" },
+            { title: "晴天", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "青花瓷", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "搁浅", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "龙卷风", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "红尘客栈", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "光辉岁月", artist: "Beyond", category: "摇滚", letter: "B" },
+            { title: "喜欢你", artist: "Beyond", category: "摇滚", letter: "B" },
+            { title: "海阔天空", artist: "Beyond", category: "摇滚", letter: "B" },
+            { title: "情人", artist: "Beyond", category: "摇滚", letter: "B" },
+            { title: "真的爱你", artist: "Beyond", category: "摇滚", letter: "B" },
+            { title: "小幸运", artist: "田馥甄", category: "流行", letter: "T" },
+            { title: "演员", artist: "薛之谦", category: "流行", letter: "X" },
+            { title: "刚刚好", artist: "薛之谦", category: "流行", letter: "X" },
+            { title: "绅士", artist: "薛之谦", category: "流行", letter: "X" },
+            { title: "认真的雪", artist: "薛之谦", category: "流行", letter: "X" },
+            { title: "丑八怪", artist: "薛之谦", category: "流行", letter: "X" },
+            { title: "你就不要想起我", artist: "田馥甄", category: "流行", letter: "T" },
+            { title: "爱在西元前", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "以父之名", artist: "周杰伦", category: "流行", letter: "Z" },
+            { title: "淘汰", artist: "陈奕迅", category: "流行", letter: "C" }
+
+    ];
+    let currentPage = 1;
+    const songsPerPage = 15;
+    let filteredSongs = [...songs];
+
+    function filterSongs() {
+      let input = document.getElementById("searchInput").value.toLowerCase();
+      let category = document.getElementById("categoryFilter").value;
+      let letter = document.getElementById("letterFilter").value;
+
+      filteredSongs = songs.filter((song) => {
+        let matchesSearch =
+          song.title.toLowerCase().includes(input) ||
+          song.artist.toLowerCase().includes(input);
+        let matchesCategory = category === "all" || song.category === category;
+        let matchesLetter = letter === "all" || song.letter === letter;
+        return matchesSearch && matchesCategory && matchesLetter;
+      });
+      currentPage = 1;
+      displaySongs();
+    }
+
+    function updatePagination() {
+      const totalPages = Math.ceil(filteredSongs.length / songsPerPage);
+      const pageSelect = document.getElementById("pageSelect");
+      pageSelect.innerHTML = "";
+      for (let i = 1; i <= totalPages; i++) {
+        let option = document.createElement("option");
+        option.value = i;
+        option.textContent = i;
+        if (i === currentPage) {
+          option.selected = true;
+        }
+        pageSelect.appendChild(option);
+      }
+      document.getElementById("prevPage").disabled = currentPage === 1;
+      document.getElementById("nextPage").disabled = currentPage === totalPages;
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        displaySongs();
+      }
+    }
+
+    function nextPage() {
+      const totalPages = Math.ceil(filteredSongs.length / songsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        displaySongs();
+      }
+    }
+
+    function goToPage() {
+      const pageSelect = document.getElementById("pageSelect");
+      currentPage = parseInt(pageSelect.value);
+      displaySongs();
+    }
+
+    function displaySongs() {
+      const songList = document.getElementById("songList");
+      songList.innerHTML = "";
+      let start = (currentPage - 1) * songsPerPage;
+      let end = start + songsPerPage;
+      let paginatedSongs = filteredSongs.slice(start, end);
+
+      paginatedSongs.forEach((song) => {
+        let songDiv = document.createElement("div");
+        songDiv.classList.add("song");
+        songDiv.innerHTML = `
+          <div>
+            <p><strong>歌曲：</strong>${song.title}</p>
+            <p><strong>歌手：</strong>${song.artist}</p>
+          </div>
+          <p class="category">${song.category}</p>
+        `;
+        songDiv.onclick = function () {
+          navigator.clipboard
+            .writeText(`${song.title} - ${song.artist}`)
+            .then(() => {
+              alert(`已复制: ${song.title} - ${song.artist}`);
+            });
+        };
+        songList.appendChild(songDiv);
+      });
+
+      updatePagination();
+      // 更新歌曲数量显示
+      document.getElementById("songCount").innerText = `总共 ${
+        songs.length
+      } 首歌曲，筛选后剩余 ${filteredSongs.length} 首歌曲`;
+    }
+
+    displaySongs();
+  </script>
+</body>
+</html>
